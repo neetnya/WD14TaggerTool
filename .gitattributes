@@ -1,0 +1,20 @@
+# 统一用 LF 存库，Windows 上检出自动转 CRLF
+* text=auto
+
+*.cs      text diff=csharp
+*.xaml    text
+*.csproj  text
+*.config  text
+*.manifest text
+*.md      text
+*.gitignore text
+*.gitattributes text
+
+# 二进制，禁止行尾转换与文本 diff
+*.png     binary
+*.ico     binary
+*.onnx    binary
+*.onnx.data binary
+*.dll     binary
+*.exe     binary
+*.nupkg   binary

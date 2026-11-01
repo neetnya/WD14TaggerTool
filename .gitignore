@@ -1,0 +1,33 @@
+# ---------- 构建产物 ----------
+bin/
+obj/
+dist/
+publish/
+artifacts/
+_tmp/
+_shots/
+*.user
+*.suo
+.vs/
+.vscode/
+
+# ---------- 离线还原用的大文件（不入仓库） ----------
+# 需要的 nupkg 由 nuget.offline.config + nuget-feed\ 提供，体积 400MB+
+packages/
+nuget-feed/
+
+# ---------- 模型与运行时数据 ----------
+# 模型（onnx + csv，约 360MB）和运行数据由使用者自备，不进仓库
+# 注意：不要写成裸的 `models/`，那会连源码目录 WD14Tagger\Models\ 一起忽略
+/models/
+dist/models/
+*.onnx
+*.onnx.data
+data/
+*.log
+
+# ---------- 杂项 ----------
+*.tmp
+*.bak
+Thumbs.db
+desktop.ini
