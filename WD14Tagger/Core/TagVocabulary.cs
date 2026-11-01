@@ -46,10 +46,26 @@ public sealed class TagVocabulary
     public int CharacterStart { get; }
     public int Count => Entries.Count;
 
+    /// <summary>词表里所有原始标签名（带下划线），用于判断读回的标签串是不是原始形式。</summary>
+    private readonly HashSet<string> _rawNames;
+
+    /// <summary>「下划线转空格、括号未转义」的显示名 → 原始名，用来认领旧版本存过的已格式化标签。</summary>
+    private readonly Dictionary<string, string> _displayToRaw;
+
     private TagVocabulary(string modelName, List<TagEntry> entries)
     {
         ModelName = modelName;
         Entries = entries;
+
+        _rawNames = new HashSet<string>(entries.Count, StringComparer.Ordinal);
+        _displayToRaw = new Dictionary<string, string>(entries.Count, StringComparer.Ordinal);
+        foreach (var entry in entries)
+        {
+            _rawNames.Add(entry.Name);
+            string shown = entry.Name.Replace('_', ' ');
+            if (!string.Equals(shown, entry.Name, StringComparison.Ordinal) && !_displayToRaw.ContainsKey(shown))
+                _displayToRaw[shown] = entry.Name;
+        }
         RatingCount = 0;
         while (RatingCount < entries.Count && entries[RatingCount].Category == 9) RatingCount++;
 
@@ -139,6 +155,37 @@ public sealed class TagVocabulary
             Rating = rating,
             RatingScore = ratingScore
         };
+    }
+
+    /// <summary>
+    /// 把 results.csv 里存的标签串还原成明细，供「读取历史结果」时套用复制格式。
+    /// 存档串本来就是原始形式（保留下划线），所以直接按 ", " 切分原样使用；
+    /// 只有旧版本可能把「已格式化」的名字存进 CSV，这时才整条去词表里匹配回原始名。
+    /// 全程不做「空格 → 下划线」的盲替换，因此「人物 (作品)」里的空格永远不会被改成下划线。
+    /// </summary>
+    public static IReadOnlyList<TagHit> RestoreHits(string? storedText, TagVocabulary? vocabulary = null)
+    {
+        if (string.IsNullOrWhiteSpace(storedText)) return Array.Empty<TagHit>();
+
+        var hits = new List<TagHit>();
+        foreach (string part in storedText.Split(", ", StringSplitOptions.RemoveEmptyEntries))
+        {
+            string token = UnescapeParens(part.Trim());
+            if (token.Length == 0) continue;
+            hits.Add(new TagHit(vocabulary?.ResolveRawName(token) ?? token, 0, TagCategory.General));
+        }
+        return hits;
+    }
+
+    /// <summary>去掉旧版本可能写进 CSV 的括号转义反斜杠：\( → ( ，\) → ) 。</summary>
+    private static string UnescapeParens(string text)
+        => text.IndexOf('\\') < 0 ? text : text.Replace("\\(", "(").Replace("\\)", ")");
+
+    private string ResolveRawName(string token)
+    {
+        if (_rawNames.Contains(token)) return token;                       // 已经是原始名（常规情况）
+        if (_displayToRaw.TryGetValue(token, out string? raw)) return raw; // 旧版存了格式化后的名字
+        return token;                                                      // 词表里没有就原样保留，绝不改写
     }
 
     /// <summary>复制用格式：可选按分数排序、下划线转空格、末尾加逗号、括号转义。</summary>

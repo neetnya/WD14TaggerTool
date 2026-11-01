@@ -267,7 +267,6 @@
                                        TextWrapping="Wrap" />
                             <CheckBox Content="下划线转空格" IsChecked="{Binding ReplaceUnderscore}" />
                             <CheckBox Content="末尾加逗号" IsChecked="{Binding TrailingComma}" />
-                            <CheckBox Content="按分数排序" IsChecked="{Binding SortByScore}" />
                             <CheckBox Content="括号转义为 \( \)" IsChecked="{Binding EscapeParens}"
                                       ToolTip="复制成 a \(cosplay\) 的形式；不勾选则括号原样输出" />
                         </StackPanel>

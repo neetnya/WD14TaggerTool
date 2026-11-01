@@ -49,8 +49,6 @@ public sealed class AppConfig
     /// <summary>复制时生效，首次运行默认不勾选。</summary>
     public bool TrailingComma { get; set; }
 
-    public bool SortByScore { get; set; }
-
     /// <summary>复制时生效，把括号转义成 \( \)；首次运行默认不勾选。</summary>
     public bool EscapeParens { get; set; }
 
@@ -65,7 +63,6 @@ public sealed class AppConfig
         OutputRating = OutputRating,
         ReplaceUnderscore = ReplaceUnderscore,
         TrailingComma = TrailingComma,
-        SortByScore = SortByScore,
         EscapeParens = EscapeParens
     };
 

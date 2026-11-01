@@ -23,6 +23,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
     private CancellationTokenSource? _cts;
     private TagVocabulary? _vocab;
+    private string? _vocabKey;
     private ResultWriter? _writer;
     private bool _isRunning;
 
@@ -34,7 +35,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
         _threshold = Math.Clamp(config.Threshold, 0, 1);
         _characterThreshold = Math.Clamp(config.CharacterThreshold, 0, 1);
-        _sortByScore = config.SortByScore;
         _replaceUnderscore = config.ReplaceUnderscore;
         _trailingComma = config.TrailingComma;
         _escapeParens = config.EscapeParens;
@@ -192,17 +192,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     {
         get => _outputRating;
         set => Set(ref _outputRating, value);
-    }
-
-    private bool _sortByScore;
-    public bool SortByScore
-    {
-        get => _sortByScore;
-        set
-        {
-            if (!Set(ref _sortByScore, value)) return;
-            RefreshCopyText();
-        }
     }
 
     private bool _replaceUnderscore = true;
@@ -425,11 +414,35 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var writer = _writer;
         if (writer == null || !writer.TryGet(item.FilePath, out var record)) return false;
 
-        item.Tags = record.Tags;
+        // CSV 里存的是原始标签（带下划线），这里先还原成明细再按当前「复制格式」格式化，
+        // 这样即使没重新反推，勾选下划线转空格 / 括号转义 也照样生效。
+        var hits = TagVocabulary.RestoreHits(record.Tags, EnsureVocabulary());
+        item.Hits = hits;
+        item.Tags = TagVocabulary.FormatCopy(hits, CurrentOptions());
         item.Rating = record.Rating;
-        item.TagCount = record.TagCount;
+        item.TagCount = record.TagCount > 0 ? record.TagCount : hits.Count;
         item.State = ItemState.Done;
         return true;
+    }
+
+    /// <summary>按当前模型加载（并缓存）标签词表；读失败返回 null。</summary>
+    private TagVocabulary? EnsureVocabulary()
+    {
+        var model = SelectedModel;
+        if (model == null || string.IsNullOrWhiteSpace(model.CsvPath) || !File.Exists(model.CsvPath)) return null;
+        if (_vocab != null && string.Equals(_vocabKey, model.CsvPath, StringComparison.OrdinalIgnoreCase)) return _vocab;
+
+        try
+        {
+            _vocab = TagVocabulary.Load(model.CsvPath);
+            _vocabKey = model.CsvPath;
+            return _vocab;
+        }
+        catch (Exception ex)
+        {
+            Log($"读取标签词表失败：{ex.Message}");
+            return null;
+        }
     }
 
     private static List<string> CollectImages(IEnumerable<string> paths, bool recursive, HashSet<string> _)
@@ -519,7 +532,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OutputRating = _outputRating,
         ReplaceUnderscore = _replaceUnderscore,
         TrailingComma = _trailingComma,
-        SortByScore = _sortByScore,
         EscapeParens = _escapeParens
     };
 
@@ -573,7 +585,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
 
             StatusText = "正在加载模型…";
             var tagger = await Task.Run(() => _engine.GetTagger(onnx, threads));
-            _vocab ??= await Task.Run(() => TagVocabulary.Load(model.CsvPath));
+            var vocab = EnsureVocabulary();
+            if (vocab == null)
+            {
+                StatusText = $"读取标签词表失败：{model.CsvPath}";
+                return;
+            }
             _writer ??= new ResultWriter(_paths.CsvPath);
 
             await Task.Run(() => tagger.Warmup());
@@ -582,7 +599,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             var itemProgress = new Progress<ItemUpdate>(ApplyUpdate);
             var batchProgress = new Progress<BatchProgress>(ApplyProgress);
 
-            await _engine.RunAsync(targets, _vocab, opts, _writer, tagger, _pause,
+            await _engine.RunAsync(targets, vocab, opts, _writer, tagger, _pause,
                 itemProgress, batchProgress, _cts.Token);
         }
         catch (OperationCanceledException)
@@ -726,7 +743,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _config.OutputRating = _outputRating;
         _config.ReplaceUnderscore = _replaceUnderscore;
         _config.TrailingComma = _trailingComma;
-        _config.SortByScore = _sortByScore;
         _config.EscapeParens = _escapeParens;
         _config.Threads = _threads;
         _config.Recursive = _recursive;

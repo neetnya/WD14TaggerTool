@@ -178,6 +178,7 @@ public sealed class ImageItem : INotifyPropertyChanged
         TagCount = 0;
         ElapsedMs = 0;
         Error = null;
+        Hits = null;
         State = ItemState.Pending;
     }
 
