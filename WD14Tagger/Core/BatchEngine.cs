@@ -83,7 +83,7 @@ public sealed class BatchEngine : IDisposable
                 var result = vocabulary.Evaluate(probs, options);
 
                 itemSw.Stop();
-                writer.Write(item.FilePath, result, vocabulary.ModelName, options, itemSw.ElapsedMilliseconds);
+                writer.Write(item.FilePath, result, options);
 
                 done++;
                 itemProgress?.Report(new ItemUpdate(item, ItemState.Done, result.CopyText,

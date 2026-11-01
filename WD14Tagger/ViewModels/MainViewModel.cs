@@ -50,14 +50,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StopCommand = new RelayCommand(Stop, () => IsRunning);
         ClearCommand = new RelayCommand(Clear, () => IsIdle && Items.Count > 0);
         RemoveSelectedCommand = new RelayCommand(RemoveSelected, () => IsIdle && SelectedItem != null);
-        ToggleScoresCommand = new RelayCommand(() => ShowScores = !ShowScores);
         CopyTagsCommand = new RelayCommand(CopyTags, () => SelectedItem != null && !string.IsNullOrWhiteSpace(SelectedTagsText));
     }
 
     public string ModelsPath => _paths.ModelsDir;
     public ObservableCollection<ImageItem> Items { get; } = new();
     public ObservableCollection<ModelInfo> Models { get; } = new();
-    public ObservableCollection<TagChip> SelectedChips { get; } = new();
 
     public AsyncRelayCommand OpenFolderCommand { get; }
     public AsyncRelayCommand AddFilesCommand { get; }
@@ -67,7 +65,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand StopCommand { get; }
     public RelayCommand ClearCommand { get; }
     public RelayCommand RemoveSelectedCommand { get; }
-    public RelayCommand ToggleScoresCommand { get; }
     public RelayCommand CopyTagsCommand { get; }
 
     /// <summary>无头自检模式（不弹对话框）。</summary>
@@ -162,20 +159,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     }
 
     public bool HasSelectedRating => !string.IsNullOrWhiteSpace(_selectedRating);
-
-    private bool _showScores;
-    /// <summary>标签分值明细默认收起，需要时手动展开。</summary>
-    public bool ShowScores
-    {
-        get => _showScores;
-        set
-        {
-            if (!Set(ref _showScores, value)) return;
-            OnPropertyChanged(nameof(ShowScoresText));
-        }
-    }
-
-    public string ShowScoresText => ShowScores ? "收起分值" : "显示分值";
 
     // ── 参数 ──────────────────────────────────────────────
     private double _threshold = 0.35;
@@ -334,6 +317,20 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         UpdateStatusReady();
         Log($"启动 · 模型目录={_paths.ModelsDir} · 找到 {Models.Count} 个模型"
             + (SelectedModel is { } m ? $" · 当前={m.Name}" : ""));
+
+        // 读入已有结果：同一张图再次反推时覆盖原来那一行，不会再追加重复行
+        try
+        {
+            var writer = new ResultWriter(_paths.CsvPath);
+            int history = writer.Count;
+            _writer = writer;
+            if (history > 0) Log($"已载入历史结果 {history} 条（{_paths.CsvPath}）");
+        }
+        catch (Exception ex)
+        {
+            Log($"读取历史结果失败：{ex.Message}");
+        }
+
         return Task.CompletedTask;
     }
 
@@ -465,15 +462,12 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     private void UpdateDetail()
     {
         var item = SelectedItem;
-        SelectedChips.Clear();
         DetailImage = null;
         SelectedRating = item?.Rating ?? "";
         SelectedTagsText = item?.Tags ?? "";
 
         RefreshCommands();
         if (item == null) return;
-
-        BuildChips(item);
 
         var path = item.FilePath;
         Task.Run(() => ImagePreprocessor.Decode(path, 1400))
@@ -483,24 +477,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
                 if (!ReferenceEquals(SelectedItem, item)) return;
                 DetailImage = t.Result;
             }, TaskScheduler.FromCurrentSynchronizationContext());
-    }
-
-    private void BuildChips(ImageItem item)
-    {
-        SelectedChips.Clear();
-        if (item.Hits == null) return;
-
-        var opts = CurrentOptions();
-        IEnumerable<TagHit> hits = opts.SortByScore ? item.Hits.OrderByDescending(h => h.Score) : item.Hits;
-        foreach (var hit in hits)
-        {
-            SelectedChips.Add(new TagChip
-            {
-                Name = hit.Name,
-                Score = hit.Score,
-                IsCharacter = hit.Category == TagCategory.Character
-            });
-        }
     }
 
     /// <summary>复制格式选项变化时，重算文本框与队列里的标签文本。</summary>
@@ -514,10 +490,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         if (SelectedItem?.Hits != null)
-        {
             SelectedTagsText = TagVocabulary.FormatCopy(SelectedItem.Hits, opts);
-            BuildChips(SelectedItem);
-        }
 
         RefreshCommands();
     }
@@ -584,7 +557,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
             StatusText = "正在加载模型…";
             var tagger = await Task.Run(() => _engine.GetTagger(onnx, threads));
             _vocab ??= await Task.Run(() => TagVocabulary.Load(model.CsvPath));
-            _writer = new ResultWriter(_paths.CsvPath);
+            _writer ??= new ResultWriter(_paths.CsvPath);
 
             await Task.Run(() => tagger.Warmup());
 
@@ -647,7 +620,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         Items.Clear();
         SelectedItem = null;
         DetailImage = null;
-        SelectedChips.Clear();
         SelectedTagsText = "";
         SelectedRating = "";
         OnPropertyChanged(nameof(HasItems));
@@ -697,7 +669,6 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         {
             SelectedTagsText = item.Tags;
             SelectedRating = item.Rating;
-            BuildChips(item);
         }
     }
 

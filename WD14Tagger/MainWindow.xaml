@@ -200,8 +200,6 @@
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Content="{Binding ShowScoresText}" Command="{Binding ToggleScoresCommand}"
-                                        Style="{StaticResource GhostButton}" Margin="0,0,4,0" />
                                 <Button Content="复制标签" Command="{Binding CopyTagsCommand}"
                                         Style="{StaticResource SecondaryButton}" MinHeight="28" Padding="12,4" />
                             </StackPanel>
@@ -209,38 +207,10 @@
 
                         <TextBox Text="{Binding SelectedTagsText, Mode=OneWay}" IsReadOnly="True"
                                  AcceptsReturn="True" TextWrapping="Wrap"
-                                 VerticalScrollBarVisibility="Auto" Height="132"
+                                 VerticalScrollBarVisibility="Auto"
+                                 MinHeight="110" MaxHeight="280"
                                  FontSize="13" Padding="10,8"
                                  Background="#FAFBFE" VerticalContentAlignment="Top" />
-
-                        <Border Margin="0,8,0,0"
-                                Visibility="{Binding ShowScores, Converter={StaticResource BoolToVis}}">
-                            <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding SelectedChips}">
-                                    <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel />
-                                        </ItemsPanelTemplate>
-                                    </ItemsControl.ItemsPanel>
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border CornerRadius="7" BorderThickness="1" Padding="8,3"
-                                                    Margin="0,0,6,6"
-                                                    Background="{Binding ChipBackground}"
-                                                    BorderBrush="{Binding ChipBorder}">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="{Binding Display}" FontSize="11.5"
-                                                               Foreground="{StaticResource TextBrush}" />
-                                                    <TextBlock Text="{Binding ScoreText}" FontSize="10.5"
-                                                               Margin="6,0,0,0" VerticalAlignment="Center"
-                                                               Foreground="{Binding ScoreBrush}" />
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </Border>
                     </StackPanel>
                 </Border>
             </Grid>
