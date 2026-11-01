@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace WD14Tagger.Core;
@@ -22,6 +23,75 @@ public sealed class ResultWriter
     private bool _loaded;
 
     public ResultWriter(string csvPath) => _csvPath = csvPath;
+
+    /// <summary>CSV 里存下的一条结果（原始值）。</summary>
+    public readonly record struct SavedRecord(
+        string FileName, string Directory, int TagCount, string Rating, string RatingScore, string Tags);
+
+    /// <summary>读出的全部历史记录，顺序就是 CSV 里的顺序（越靠后越新）。</summary>
+    public IReadOnlyList<SavedRecord> GetRecords()
+    {
+        lock (_sync)
+        {
+            EnsureLoaded();
+
+            var list = new List<SavedRecord>(_lines.Count);
+            foreach (string line in _lines)
+            {
+                var cells = SplitCsv(line);
+                if (cells.Count < 6) continue;
+                list.Add(new SavedRecord(cells[0], cells[1],
+                    int.TryParse(cells[2], out int count) ? count : 0,
+                    cells[3], cells[4], cells[5]));
+            }
+            return list;
+        }
+    }
+
+    /// <summary>按图片路径查一条历史记录。</summary>
+    public bool TryGet(string imagePath, out SavedRecord record)
+    {
+        record = default;
+        lock (_sync)
+        {
+            EnsureLoaded();
+
+            string file = Path.GetFileName(imagePath);
+            string dir = Path.GetDirectoryName(imagePath) ?? "";
+            if (!_index.TryGetValue(MakeKey(dir, file), out int at)) return false;
+
+            var cells = SplitCsv(_lines[at]);
+            if (cells.Count < 6) return false;
+
+            record = new SavedRecord(cells[0], cells[1],
+                int.TryParse(cells[2], out int count) ? count : 0,
+                cells[3], cells[4], cells[5]);
+            return true;
+        }
+    }
+
+    /// <summary>删掉一条历史记录（界面上删掉队列项时同步调用，免得下次打开又冒出来）。</summary>
+    public void Remove(string imagePath)
+    {
+        lock (_sync)
+        {
+            EnsureLoaded();
+
+            string file = Path.GetFileName(imagePath);
+            string dir = Path.GetDirectoryName(imagePath) ?? "";
+            string key = MakeKey(dir, file);
+            if (!_index.TryGetValue(key, out int at)) return;
+
+            _lines.RemoveAt(at);
+            _index.Remove(key);
+
+            // 后面的索引整体前移
+            foreach (string k in _index.Keys.ToArray())
+                if (_index[k] > at) _index[k]--;
+
+            Save();
+        }
+    }
 
     /// <summary>已载入的历史记录条数（首次访问时从磁盘读取）。</summary>
     public int Count

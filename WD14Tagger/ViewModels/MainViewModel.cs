@@ -399,9 +399,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
 
         string baseDir = list.Length == 1 && Directory.Exists(list[0]) ? list[0] : "";
+        int reused = 0;
         foreach (var file in found)
         {
             var item = new ImageItem(file, baseDir);
+            if (TryFillFromHistory(item)) reused++;
             Items.Add(item);
             _ = LoadThumbAsync(item);
         }
@@ -412,7 +414,22 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(HasItems));
         OnPropertyChanged(nameof(QueueSummary));
         RefreshCommands();
-        StatusText = $"已加入 {found.Count} 张图片，共 {Items.Count} 张";
+        StatusText = reused > 0
+            ? $"已加入 {found.Count} 张图片，其中 {reused} 张已有反推结果，共 {Items.Count} 张"
+            : $"已加入 {found.Count} 张图片，共 {Items.Count} 张";
+    }
+
+    /// <summary>如果 data\results.csv 里有这张图的记录，就直接填成「完成」，不用再反推。</summary>
+    private bool TryFillFromHistory(ImageItem item)
+    {
+        var writer = _writer;
+        if (writer == null || !writer.TryGet(item.FilePath, out var record)) return false;
+
+        item.Tags = record.Tags;
+        item.Rating = record.Rating;
+        item.TagCount = record.TagCount;
+        item.State = ItemState.Done;
+        return true;
     }
 
     private static List<string> CollectImages(IEnumerable<string> paths, bool recursive, HashSet<string> _)
@@ -634,6 +651,11 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         var item = SelectedItem;
         int index = Items.IndexOf(item);
         Items.Remove(item);
+
+        // 队列里删掉了，就把 CSV 里那一行也删掉，免得下次打开又冒出来
+        try { _writer?.Remove(item.FilePath); }
+        catch (Exception ex) { Log($"删除历史记录失败：{ex.Message}"); }
+
         SelectedItem = Items.Count == 0 ? null : Items[Math.Clamp(index, 0, Items.Count - 1)];
         OnPropertyChanged(nameof(HasItems));
         OnPropertyChanged(nameof(QueueSummary));
