@@ -51,6 +51,9 @@ public sealed class AppConfig
 
     public bool SortByScore { get; set; }
 
+    /// <summary>复制时生效，把括号转义成 \( \)；首次运行默认不勾选。</summary>
+    public bool EscapeParens { get; set; }
+
     public int Threads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
     public bool Recursive { get; set; } = true;
     public string[] Extensions { get; set; } = { "png", "jpg", "jpeg", "webp", "bmp", "gif", "tiff", "tif" };
@@ -62,7 +65,8 @@ public sealed class AppConfig
         OutputRating = OutputRating,
         ReplaceUnderscore = ReplaceUnderscore,
         TrailingComma = TrailingComma,
-        SortByScore = SortByScore
+        SortByScore = SortByScore,
+        EscapeParens = EscapeParens
     };
 
     private static readonly JsonSerializerOptions JsonOptions = new()

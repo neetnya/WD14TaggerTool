@@ -20,7 +20,7 @@ public static class CliRunner
         int threads = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
         string? csvOut = null;
         string? dumpPath = null;
-        bool underscore = true, trailing = false, sortByScore = false, quiet = false;
+        bool underscore = true, trailing = false, sortByScore = false, escapeParens = false, quiet = false;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -40,6 +40,8 @@ public static class CliRunner
                 case "--trailing": trailing = true; break;
                 case "--no-trailing": trailing = false; break;
                 case "--sort": sortByScore = true; break;
+                case "--escape-parens": escapeParens = true; break;
+                case "--no-escape-parens": escapeParens = false; break;
                 case "--quiet": quiet = true; break;
                 default: paths.Add(a); break;
             }
@@ -47,7 +49,7 @@ public static class CliRunner
 
         if (paths.Count == 0)
         {
-            Console.Error.WriteLine("用法: WD14Tagger.exe --cli <目录或图片...> [--model <onnx>] [--threshold 0.35] [--char-threshold 0.85] [--threads 8] [--csv out.csv] [--sort] [--no-underscore] [--no-trailing] [--quiet]");
+            Console.Error.WriteLine("用法: WD14Tagger.exe --cli <目录或图片...> [--model <onnx>] [--threshold 0.35] [--char-threshold 0.85] [--threads 8] [--csv out.csv] [--sort] [--no-underscore] [--no-trailing] [--escape-parens] [--quiet]");
             return 2;
         }
 
@@ -94,6 +96,7 @@ public static class CliRunner
             ReplaceUnderscore = underscore,
             TrailingComma = trailing,
             SortByScore = sortByScore,
+            EscapeParens = escapeParens,
             OutputRating = true
         };
 

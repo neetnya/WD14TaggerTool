@@ -3,7 +3,7 @@ namespace WD14Tagger.Core;
 /// <summary>
 /// 反推与「复制格式」参数。
 /// 阈值/角色阈值/评级影响反推与 results.csv；
-/// 按分数排序 / 下划线转空格 / 末尾加逗号 只在「复制到剪贴板」时生效。
+/// 按分数排序 / 下划线转空格 / 末尾加逗号 / 括号转义 只在「复制到剪贴板」时生效。
 /// </summary>
 public sealed class TaggerOptions
 {
@@ -12,8 +12,9 @@ public sealed class TaggerOptions
     public bool OutputRating { get; set; } = true;
 
     public bool ReplaceUnderscore { get; set; } = true;
-    public bool TrailingComma { get; set; } = true;
+    public bool TrailingComma { get; set; }
     public bool SortByScore { get; set; }
+    public bool EscapeParens { get; set; }
 
     public TaggerOptions Clone() => new()
     {
@@ -22,6 +23,7 @@ public sealed class TaggerOptions
         OutputRating = OutputRating,
         ReplaceUnderscore = ReplaceUnderscore,
         TrailingComma = TrailingComma,
-        SortByScore = SortByScore
+        SortByScore = SortByScore,
+        EscapeParens = EscapeParens
     };
 }

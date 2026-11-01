@@ -141,7 +141,7 @@ public sealed class TagVocabulary
         };
     }
 
-    /// <summary>复制用格式：可选按分数排序、下划线转空格、末尾加逗号；括号原样输出，不做转义。</summary>
+    /// <summary>复制用格式：可选按分数排序、下划线转空格、末尾加逗号、括号转义。</summary>
     public static string FormatCopy(IReadOnlyList<TagHit> hits, TaggerOptions options)
     {
         if (hits.Count == 0) return "";
@@ -150,7 +150,9 @@ public sealed class TagVocabulary
         var parts = new List<string>(hits.Count);
         foreach (var hit in seq)
         {
-            parts.Add(options.ReplaceUnderscore ? hit.Name.Replace('_', ' ') : hit.Name);
+            string name = options.ReplaceUnderscore ? hit.Name.Replace('_', ' ') : hit.Name;
+            if (options.EscapeParens) name = name.Replace("(", "\\(").Replace(")", "\\)");
+            parts.Add(name);
         }
 
         string text = string.Join(", ", parts);

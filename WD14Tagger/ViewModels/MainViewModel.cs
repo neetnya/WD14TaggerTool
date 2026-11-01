@@ -37,6 +37,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _sortByScore = config.SortByScore;
         _replaceUnderscore = config.ReplaceUnderscore;
         _trailingComma = config.TrailingComma;
+        _escapeParens = config.EscapeParens;
         _outputRating = config.OutputRating;
         _threads = Math.Clamp(config.Threads, 1, 32);
         _recursive = config.Recursive;
@@ -239,6 +240,17 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         set
         {
             if (!Set(ref _trailingComma, value)) return;
+            RefreshCopyText();
+        }
+    }
+
+    private bool _escapeParens;
+    public bool EscapeParens
+    {
+        get => _escapeParens;
+        set
+        {
+            if (!Set(ref _escapeParens, value)) return;
             RefreshCopyText();
         }
     }
@@ -517,7 +529,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         OutputRating = _outputRating,
         ReplaceUnderscore = _replaceUnderscore,
         TrailingComma = _trailingComma,
-        SortByScore = _sortByScore
+        SortByScore = _sortByScore,
+        EscapeParens = _escapeParens
     };
 
     // ── 开始 / 暂停 / 停止 ────────────────────────────────
@@ -721,6 +734,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         _config.ReplaceUnderscore = _replaceUnderscore;
         _config.TrailingComma = _trailingComma;
         _config.SortByScore = _sortByScore;
+        _config.EscapeParens = _escapeParens;
         _config.Threads = _threads;
         _config.Recursive = _recursive;
         _config.ModelName = SelectedModel?.Name ?? _config.ModelName;
