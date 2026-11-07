@@ -50,6 +50,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         StopCommand = new RelayCommand(Stop, () => IsRunning);
         ClearCommand = new RelayCommand(Clear, () => IsIdle && Items.Count > 0);
         RemoveSelectedCommand = new RelayCommand(RemoveSelected, () => IsIdle && SelectedItem != null);
+        ClearDataCommand = new RelayCommand(ClearData, () => IsIdle);
         CopyTagsCommand = new RelayCommand(CopyTags, () => SelectedItem != null && !string.IsNullOrWhiteSpace(SelectedTagsText));
     }
 
@@ -65,6 +66,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
     public RelayCommand StopCommand { get; }
     public RelayCommand ClearCommand { get; }
     public RelayCommand RemoveSelectedCommand { get; }
+    public RelayCommand ClearDataCommand { get; }
     public RelayCommand CopyTagsCommand { get; }
 
     /// <summary>无头自检模式（不弹对话框）。</summary>
@@ -216,7 +218,7 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    private bool _escapeParens;
+    private bool _escapeParens = true;
     public bool EscapeParens
     {
         get => _escapeParens;
@@ -679,6 +681,66 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         RefreshCommands();
     }
 
+    /// <summary>清空 data\results.csv 里保存的全部反推结果；队列里已完成的图片同时恢复成待处理。</summary>
+    private void ClearData()
+    {
+        if (IsRunning) return;
+
+        var writer = _writer ??= new ResultWriter(_paths.CsvPath);
+        int saved;
+        try { saved = writer.Count; }
+        catch (Exception ex)
+        {
+            Log($"读取历史结果条数失败：{ex.Message}");
+            saved = 0;
+        }
+
+        int done = Items.Count(i => i.State == ItemState.Done);
+        if (saved == 0 && done == 0)
+        {
+            StatusText = "没有可清理的数据";
+            return;
+        }
+
+        if (!Headless)
+        {
+            string lines = saved > 0
+                ? $"results.csv 里的 {saved} 条记录会被删除"
+                : "results.csv 里没有记录";
+            if (done > 0) lines += $"，队列里已完成的 {done} 张图片会恢复为待处理";
+            var answer = MessageBox.Show(
+                $"将清空保存的反推结果：\n{_paths.CsvPath}\n\n{lines}。\n此操作不可撤销，确定继续吗？",
+                "清空数据", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel);
+            if (answer != MessageBoxResult.OK) return;
+        }
+
+        foreach (var item in Items.Where(i => i.State == ItemState.Done).ToList())
+            item.ResetResult();
+
+        try
+        {
+            writer.Clear();
+            if (SelectedItem is { } sel)
+            {
+                SelectedTagsText = sel.Tags;
+                SelectedRating = sel.Rating;
+            }
+
+            StatusText = saved > 0
+                ? $"已清空数据：删除 {saved} 条记录" + (done > 0 ? $"，{done} 张图片已恢复为待处理" : "")
+                : "已清空数据";
+            Log($"清空数据：{_paths.CsvPath}（删除 {saved} 条记录，重置 {done} 张图片）");
+        }
+        catch (Exception ex)
+        {
+            StatusText = "清空数据失败：" + ex.Message;
+            Log($"清空数据失败：{ex.Message}");
+        }
+
+        OnPropertyChanged(nameof(QueueSummary));
+        RefreshCommands();
+    }
+
     private void CopyTags()
     {
         if (string.IsNullOrWhiteSpace(SelectedTagsText)) return;
@@ -724,7 +786,8 @@ public sealed class MainViewModel : ObservableObject, IDisposable
         foreach (var cmd in new System.Windows.Input.ICommand[]
                  {
                      OpenFolderCommand, AddFilesCommand, StartCommand, StartSelectedCommand,
-                     PauseCommand, StopCommand, ClearCommand, RemoveSelectedCommand, CopyTagsCommand
+                     PauseCommand, StopCommand, ClearCommand, RemoveSelectedCommand, ClearDataCommand,
+                     CopyTagsCommand
                  })
         {
             switch (cmd)

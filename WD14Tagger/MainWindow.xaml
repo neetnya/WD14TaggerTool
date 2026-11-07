@@ -71,7 +71,10 @@
                     <Button Content="清空队列" Command="{Binding ClearCommand}"
                             Style="{StaticResource GhostButton}" Margin="0,0,6,0" />
                     <Button Content="删除选中" Command="{Binding RemoveSelectedCommand}"
-                            Style="{StaticResource GhostButton}" />
+                            Style="{StaticResource GhostButton}" Margin="0,0,6,0" />
+                    <Button Content="清空数据" Command="{Binding ClearDataCommand}"
+                            Style="{StaticResource DangerButton}" MinHeight="30" Padding="11,5" FontSize="12.5"
+                            ToolTip="清空 data\results.csv 里保存的全部反推结果，队列里已完成的图片会恢复为待处理" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -267,8 +270,14 @@
                                        TextWrapping="Wrap" />
                             <CheckBox Content="下划线转空格" IsChecked="{Binding ReplaceUnderscore}" />
                             <CheckBox Content="末尾加逗号" IsChecked="{Binding TrailingComma}" />
-                            <CheckBox Content="括号转义为 \( \)" IsChecked="{Binding EscapeParens}"
-                                      ToolTip="复制成 a \(cosplay\) 的形式；不勾选则括号原样输出" />
+                            <CheckBox Content="括号转义为 \( \)" IsChecked="{Binding EscapeParens}">
+                                <CheckBox.ToolTip>
+                                    <ToolTip Placement="Mouse" VerticalOffset="6">
+                                        <TextBlock Text="复制成 a \(cosplay\) 的形式；不勾选则括号原样输出"
+                                                   TextWrapping="Wrap" MaxWidth="300" />
+                                    </ToolTip>
+                                </CheckBox.ToolTip>
+                            </CheckBox>
                         </StackPanel>
                     </Border>
 

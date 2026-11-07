@@ -49,8 +49,13 @@ public sealed class AppConfig
     /// <summary>复制时生效，首次运行默认不勾选。</summary>
     public bool TrailingComma { get; set; }
 
-    /// <summary>复制时生效，把括号转义成 \( \)；首次运行默认不勾选。</summary>
-    public bool EscapeParens { get; set; }
+    /// <summary>复制时生效，把括号转义成 \( \)；默认勾选。</summary>
+    public bool EscapeParens { get; set; } = true;
+
+    /// <summary>配置版本号，用于旧配置升级（v2 起括号转义默认勾选）。</summary>
+    public int ConfigVersion { get; set; } = CurrentConfigVersion;
+
+    public const int CurrentConfigVersion = 2;
 
     public int Threads { get; set; } = Math.Clamp(Environment.ProcessorCount / 2, 1, 8);
     public bool Recursive { get; set; } = true;
@@ -82,7 +87,18 @@ public sealed class AppConfig
             {
                 string json = File.ReadAllText(path);
                 var cfg = JsonSerializer.Deserialize<AppConfig>(json, JsonOptions);
-                if (cfg != null) return cfg;
+                if (cfg != null)
+                {
+                    // 旧配置（v1）里括号转义默认没勾选；升级后按新默认勾上，
+                    // 之后用户再取消勾选会以 v2 保存，不会被反复改回来。
+                    if (cfg.ConfigVersion < CurrentConfigVersion)
+                    {
+                        cfg.EscapeParens = true;
+                        cfg.ConfigVersion = CurrentConfigVersion;
+                        cfg.Save(path);
+                    }
+                    return cfg;
+                }
             }
         }
         catch

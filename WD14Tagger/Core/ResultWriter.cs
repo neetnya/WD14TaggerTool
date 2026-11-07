@@ -106,6 +106,18 @@ public sealed class ResultWriter
         }
     }
 
+    /// <summary>清空全部记录，并把磁盘上的文件重写成只有表头（相当于删掉 results.csv）。</summary>
+    public void Clear()
+    {
+        lock (_sync)
+        {
+            EnsureLoaded();
+            _lines.Clear();
+            _index.Clear();
+            Save();
+        }
+    }
+
     public void Write(string imagePath, TagResult result, TaggerOptions options)
     {
         lock (_sync)

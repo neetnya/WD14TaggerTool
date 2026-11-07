@@ -364,13 +364,26 @@
         </Setter>
     </Style>
 
+    <!-- ══ 提示气泡（浅色卡片，不再用深色黑条） ══ -->
     <Style TargetType="ToolTip">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource AppFont}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="MaxWidth" Value="400" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
-                    <Border Background="#1B2536" CornerRadius="7" Padding="9,5">
-                        <ContentPresenter TextElement.Foreground="White" TextElement.FontSize="12"
-                                          TextElement.FontFamily="{StaticResource AppFont}" />
+                    <Border Background="#FFFFFF"
+                            BorderBrush="#DCE3F0"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="10,7"
+                            Margin="0,2,0,0">
+                        <ContentPresenter TextElement.Foreground="{TemplateBinding Foreground}"
+                                          TextElement.FontFamily="{StaticResource AppFont}"
+                                          TextElement.FontSize="12" />
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
