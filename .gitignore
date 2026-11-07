@@ -18,8 +18,9 @@ nuget-feed/
 
 # ---------- 模型与运行时数据 ----------
 # 模型（onnx + csv，约 360MB）和运行数据由使用者自备，不进仓库
-# 注意：不要写成裸的 `models/`，那会连源码目录 WD14Tagger\Models\ 一起忽略
+# 注意：源码目录也叫 Models\（首字母大写），所以这里必须带锚点并显式放行
 /models/
+!/Models/
 dist/models/
 *.onnx
 *.onnx.data

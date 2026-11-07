@@ -53,10 +53,10 @@ data\app.log              运行日志
 
 ## 四、自己编译
 
-源码在 `WD14Tagger\`，需要 .NET 9 SDK。
+源码就在仓库根目录（`WD14Tagger.csproj`），需要 .NET 9 SDK。
 
 ```bat
-dotnet publish WD14Tagger\WD14Tagger.csproj -c Release -r win-x64 --self-contained true -o dist
+dotnet publish WD14Tagger.csproj -c Release -r win-x64 --self-contained true -o dist
 ```
 
 然后自己准备模型：把 `xxx.onnx` 和同名 `xxx.csv` 放进 `dist\models\`（仓库里不含模型文件，占 360 MB 且版权归原作者）。
