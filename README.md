@@ -1,10 +1,12 @@
-# WD14 图片反推工具（WPF · 纯 CPU · 绿色便携）
+# WD14 图片反推工具
 
-把 ComfyUI-WD14-Tagger 的反推能力抽出来做成独立小工具：**不需要 ComfyUI、不需要 Python、不用联网**，解压双击就能跑。
+由开源项目 [ComfyUI-WD14-Tagger](https://huggingface.co/SmilingWolf/wd-vit-tagger-v3/resolve/main) 改造而来。
 
-模型固定放在程序目录的 `models\` 里，结果只落在 `data\results.csv`，软件本身不往别处写东西。
+## License
 
-## 一、目录结构（全部在软件目录里）
+包含的原项目代码遵循 MIT 许可证，版权归 Copyright (c) 2024 pythongosssss 所有。详见 `LICENSE-original` 文件。
+
+## 一、目录结构
 
 ```
 WD14Tagger.exe            主程序（自包含，.NET 运行时已打包进来）
@@ -54,8 +56,8 @@ data\app.log              运行日志
 源码在 `WD14Tagger\`，需要 .NET 9 SDK。
 
 ```bat
-:: 还原走 nuget.org
 dotnet publish WD14Tagger\WD14Tagger.csproj -c Release -r win-x64 --self-contained true -o dist
 ```
 
 然后自己准备模型：把 `xxx.onnx` 和同名 `xxx.csv` 放进 `dist\models\`（仓库里不含模型文件，占 360 MB 且版权归原作者）。
+模型地址:https://huggingface.co/SmilingWolf/wd-vit-tagger-v3/tree/main
